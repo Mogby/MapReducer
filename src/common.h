@@ -27,4 +27,8 @@ void pushBack(Vector *vector, void *element);
 
 int compareKeyValuePairs(const void *leftPointer, const void *rightPointer);
 
+void freeVector(Vector *vector);
+
+void freeVectorOfPairs(Vector *vector);
+
 #endif

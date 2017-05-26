@@ -38,6 +38,8 @@ typedef struct _client_struct {
 
 ServerInfo startServer(uint16_t portNumber);
 
+void shutdownServer(ServerInfo server);
+
 int getReducerForKey(const char *key, Vector *reducers, size_t *reducerIndex);
 
 void addReducer(const char *key, Vector *reducers, size_t reducerIndex);

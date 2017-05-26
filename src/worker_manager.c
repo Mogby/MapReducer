@@ -90,19 +90,21 @@ void runMapper(Connection connection) {
 
     pipe(mapperPipe);
 
+    puts("Running mapper");
+
     fflush(stdout);
     if (!fork()) {
+        dup2(mapperPipe[1], STDOUT_FILENO);
         close(mapperPipe[0]);
-        close(STDOUT_FILENO);
         close(connection.connectionSocket);
-        dup(mapperPipe[1]);
         execl("Mapper", "Mapper", NULL);
     }
 
+    dup2(mapperPipe[0], STDIN_FILENO);
     close(mapperPipe[1]);
-    close(STDIN_FILENO);
-    dup(mapperPipe[0]);
     wait(NULL);
+
+    puts("Mapper terminated");
 
     write(connection.connectionSocket, &COMMAND_REGISTER_MAPPER, sizeof(COMMAND_REGISTER_MAPPER));
 
@@ -178,6 +180,8 @@ void runMapper(Connection connection) {
     for (size_t index = 0; index < reducers->size; ++index) {
         networkWrite(((Reducer*)reducers->storage[index])->socket, &COMMAND_STOP, sizeof(COMMAND_STOP));
     }
+
+    freeVectorOfPairs(keyReducers);
 }
 
 void outputPair(const char *key, size_t keySize, const char *value, size_t valueSize) {
@@ -220,6 +224,8 @@ void* handleClient(void *clientPointer) {
         }
     }
 
+    close(client->clientSocket);
+
     return NULL;
 }
 
@@ -259,6 +265,8 @@ void* startListening(void *serverPointer) {
             pthread_create(&newClient->clientThread, NULL, &handleClient, (void*)newClient);
         } else {
             printf("Client #%d failed\n", newClient->clientSocket);
+            free(newClient);
+            close(clientSocket);
         }
 
         pthread_mutex_unlock(&server->mutex);
@@ -293,10 +301,10 @@ void runReducer(Connection connection) {
         pthread_join(((Client*)server.mappers->storage[index])->clientThread, NULL);
     }
 
-    close(connection.connectionSocket);
     close(outputFile);
 
     if (!fork()) {
+        close(connection.connectionSocket);
         int inputFile = open("manager.out", O_RDONLY, S_IWUSR | S_IRUSR);
         dup2(inputFile, STDIN_FILENO);
         close(inputFile);
@@ -304,6 +312,9 @@ void runReducer(Connection connection) {
     }
 
     wait(NULL);
+
+    pthread_mutex_destroy(&outputMutex);
+    shutdownServer(server);
 }
 
 
@@ -333,6 +344,8 @@ int main() {
     } else {
         runReducer(connection);
     }
+
+    close(connection.connectionSocket);
 
     return 0;
 }

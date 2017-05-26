@@ -8,8 +8,8 @@
 #include <string.h>
 #include <pthread.h>
 
-const uint16_t MASTER_PORT_NUMBER = 8800;
-const uint16_t REDUCER_PORT_NUMBER = 8801;
+const uint16_t MASTER_PORT_NUMBER = 8804;
+const uint16_t REDUCER_PORT_NUMBER = 8805;
 
 const u_char COMMAND_REGISTER_MAPPER = 0;
 const u_char COMMAND_REGISTER_REDUCER = 1;
@@ -55,6 +55,7 @@ void networkWrite(int socket, const void *buffer, size_t size) {
                 data[index] = ((char *) buffer)[7 - index];
             }
             write(socket, data, 8);
+            free(data);
         } else {
             write(socket, buffer, size);
         }
@@ -94,6 +95,14 @@ ServerInfo startServer(uint16_t portNumber) {
     pthread_mutex_init(&result.mutex, NULL);
 
     return result;
+}
+
+void shutdownServer(ServerInfo server) {
+    freeVector(server.mappers);
+    freeVector(server.reducers);
+    pthread_mutex_destroy(&server.mutex);
+    sem_destroy(&server.semaphore);
+    close(server.serverSocket);
 }
 
 int getReducerForKey(const char *key, Vector *reducers, size_t *reducerIndex) {

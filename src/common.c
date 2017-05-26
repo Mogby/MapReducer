@@ -57,3 +57,19 @@ int compareKeyValuePairs(const void *leftPointer, const void *rightPointer) {
 
     return wcscmp(leftPair->key, rightPair->key);
 }
+
+void freeVector(Vector *vector) {
+    for (size_t index = 0; index < vector->size; ++index) {
+        free(vector->storage[index]);
+    }
+    free(vector->storage);
+    free(vector);
+}
+
+void freeVectorOfPairs(Vector *vector) {
+    for (size_t index = 0; index < vector->size; ++index) {
+        free(((KeyValuePair*)vector->storage[index])->key);
+        free(((KeyValuePair*)vector->storage[index])->value);
+    }
+    freeVector(vector);
+}

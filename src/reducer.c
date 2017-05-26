@@ -37,5 +37,7 @@ int main() {
         leftBound = rightBound;
     }
 
+    freeVectorOfPairs(wordsVector);
+
     return EXIT_SUCCESS;
 }

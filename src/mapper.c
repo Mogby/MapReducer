@@ -60,6 +60,8 @@ wchar_t* readWholeFile(const char *filename) {
     buffer = realloc(buffer, sizeof(wchar_t) * (bufferLength + 1));
     buffer[bufferLength] = 0;
 
+    fclose(file);
+
     return buffer;
 }
 
@@ -84,6 +86,10 @@ void handleFile(const char *filename) {
 
         leftBound = rightBound;
     }
+
+    freeVectorOfPairs(wordsList);
+    free(fileDescription.key);
+    free(fileDescription.value);
 }
 
 void processInput() {
@@ -106,6 +112,8 @@ void processInput() {
             fprintf(logFile, "Ignoring ./data/%s\n", directoryEntry->d_name);
         }
     }
+
+    closedir(directory);
 }
 
 int main() {
@@ -114,6 +122,8 @@ int main() {
     logFile = fopen("mapper.log", "w");
 
     processInput();
+
+    fclose(logFile);
 
     return EXIT_SUCCESS;
 }

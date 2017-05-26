@@ -33,6 +33,7 @@ void* handleMapper(void* mapperrPointer) {
             keyBuffer[keySize] = 0;
 
             size_t reducerIndex;
+            pthread_mutex_lock(&mapper->server->mutex);
             if (getReducerForKey(keyBuffer, keyReducers, &reducerIndex) < 0) {
                 reducerIndex = currentReducer;
                 printf("Assigning index %lu to key %s\n", reducerIndex, keyBuffer);
@@ -42,6 +43,7 @@ void* handleMapper(void* mapperrPointer) {
 
                 addReducer(keyBuffer, keyReducers, reducerIndex);
             }
+            pthread_mutex_unlock(&mapper->server->mutex);
 
             networkWrite(mapper->client->clientSocket, &reducerIndex, sizeof(reducerIndex));
         }
@@ -49,6 +51,9 @@ void* handleMapper(void* mapperrPointer) {
 
     printf("Mapper #%d terminated\n", mapper->client->clientSocket);
     sem_post(&mapper->server->semaphore);
+
+    close(mapper->client->clientSocket);
+    free(mapper);
 
     return NULL;
 }
@@ -145,9 +150,13 @@ int main() {
 
     for (size_t index = 0; index < server.reducers->size; ++index) {
         networkWrite(((Client*)server.reducers->storage[index])->clientSocket, &COMMAND_STOP, sizeof(COMMAND_STOP));
+        close(((Client*)server.reducers->storage[index])->clientSocket);
     }
 
     close(server.serverSocket);
+
+    freeVectorOfPairs(keyReducers);
+    shutdownServer(server);
 
     return 0;
 }
