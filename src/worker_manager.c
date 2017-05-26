@@ -297,7 +297,7 @@ void runReducer(Connection connection) {
     close(outputFile);
 
     if (!fork()) {
-        int inputFile = open("manager.out", O_RDONLY);
+        int inputFile = open("manager.out", O_RDONLY, S_IWUSR | S_IRUSR);
         dup2(inputFile, STDIN_FILENO);
         close(inputFile);
         execl("Reducer", "Reducer", NULL);

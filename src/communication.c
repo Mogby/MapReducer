@@ -8,8 +8,8 @@
 #include <string.h>
 #include <pthread.h>
 
-const uint16_t MASTER_PORT_NUMBER = 8808;
-const uint16_t REDUCER_PORT_NUMBER = 8809;
+const uint16_t MASTER_PORT_NUMBER = 8800;
+const uint16_t REDUCER_PORT_NUMBER = 8801;
 
 const u_char COMMAND_REGISTER_MAPPER = 0;
 const u_char COMMAND_REGISTER_REDUCER = 1;

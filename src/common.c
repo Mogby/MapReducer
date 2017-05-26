@@ -51,19 +51,9 @@ void pushBack(Vector *vector, void *element) {
     }
 }
 
-void popBack(Vector *vector) {
-    --vector->size;
+int compareKeyValuePairs(const void *leftPointer, const void *rightPointer) {
+    KeyValuePair *leftPair = *((KeyValuePair**)leftPointer);
+    KeyValuePair *rightPair = *((KeyValuePair**)rightPointer);
 
-    if (vector->capacity > 4 && 4 * vector->size <= vector->capacity) {
-        resizeVector(vector, vector->capacity / 2);
-    }
-}
-
-KeyValuesList* append(KeyValuesList *list, KeyValuePair pair) {
-    KeyValuesList *newElement = malloc(sizeof(KeyValuesList));
-
-    newElement->pair = pair;
-    newElement->nextPair = list;
-
-    return newElement;
+    return wcscmp(leftPair->key, rightPair->key);
 }

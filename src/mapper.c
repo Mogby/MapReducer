@@ -11,14 +11,14 @@
 
 static FILE *logFile;
 
-KeyValuesList* map(KeyValuePair file) {
+Vector* map(KeyValuePair file) {
     size_t bufferLength;
     wchar_t buffer[4096];
 
     wchar_t *leftBound = file.value;
     wchar_t *rightBound;
 
-    KeyValuesList *result = NULL;
+    Vector *result = createVector();
     while (*leftBound) {
         while (*leftBound && !iswalnum(*leftBound))
             ++leftBound;
@@ -30,8 +30,9 @@ KeyValuesList* map(KeyValuePair file) {
         buffer[bufferLength] = 0;
 
         if (bufferLength) {
-            KeyValuePair newElement = createWordCountPair(buffer, 1);
-            result = append(result, newElement);
+            KeyValuePair *newElement = malloc(sizeof(KeyValuePair));
+            *newElement = createWordCountPair(buffer, 1);
+            pushBack(result, (void*)newElement);
         }
 
         leftBound = rightBound;
@@ -63,16 +64,25 @@ wchar_t* readWholeFile(const char *filename) {
 }
 
 void handleFile(const char *filename) {
-    wchar_t *buffer;
-
     KeyValuePair fileDescription;
     fileDescription.key = createStringCopy(filename);
     fileDescription.value = readWholeFile(filename);
 
-    KeyValuesList *wordsList = map(fileDescription);
-    while (wordsList) {
-        wprintf(L"%ls : %lu\n", (wchar_t*)wordsList->pair.key, *((size_t*)wordsList->pair.value));
-        wordsList = wordsList->nextPair;
+    Vector *wordsList = map(fileDescription);
+    qsort(wordsList->storage, wordsList->size, sizeof(void*), compareKeyValuePairs);
+    size_t leftBound = 0, rightBound = 0;
+    size_t wordCount;
+    while (leftBound < wordsList->size) {
+        wordCount = 0;
+        while (rightBound < wordsList->size &&
+                !compareKeyValuePairs(wordsList->storage + leftBound,
+                                      wordsList->storage + rightBound)) {
+            wordCount += *(size_t*)((KeyValuePair*)wordsList->storage[rightBound])->value;
+            ++rightBound;
+        }
+        wprintf(L"%ls : %lu\n", ((KeyValuePair*)wordsList->storage[leftBound])->key, wordCount);
+
+        leftBound = rightBound;
     }
 }
 

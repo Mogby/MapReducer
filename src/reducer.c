@@ -2,16 +2,8 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 #include <wchar.h>
 #include <locale.h>
-
-int compareKeyValuePairs(const void *leftPointer, const void *rightPointer) {
-    KeyValuePair *leftPair = *((KeyValuePair**)leftPointer);
-    KeyValuePair *rightPair = *((KeyValuePair**)rightPointer);
-
-    return wcscmp(leftPair->key, rightPair->key);
-}
 
 int main() {
     freopen("reducer.out", "w", stdout);

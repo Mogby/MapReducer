@@ -25,13 +25,6 @@ Vector* createVector();
 
 void pushBack(Vector *vector, void *element);
 
-void popBack(Vector *vector);
-
-typedef struct _key_values_list_struct {
-    KeyValuePair pair;
-    struct _key_values_list_struct *nextPair;
-} KeyValuesList;
-
-KeyValuesList* append(KeyValuesList *list, KeyValuePair pair);
+int compareKeyValuePairs(const void *leftPointer, const void *rightPointer);
 
 #endif
