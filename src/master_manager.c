@@ -1,14 +1,16 @@
 #include "common.h"
 #include "communication.h"
 
-#include <netdb.h>
 #include <unistd.h>
 
-#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include <pthread.h>
+
+static size_t currentReducer;
+
+static Vector *keyReducers;
 
 typedef struct _mapper_struct {
     ServerInfo *server;
@@ -18,16 +20,37 @@ typedef struct _mapper_struct {
 void* handleMapper(void* mapperrPointer) {
     Mapper *mapper = (Mapper*)mapperrPointer;
 
+    char keyBuffer[1024];
     for (;;) {
         u_char command;
         networkRead(mapper->client->clientSocket, &command, sizeof(command));
         if (command == COMMAND_STOP) {
             break;
+        } else if (command == COMMAND_GET_REDUCER) {
+            size_t keySize;
+            networkRead(mapper->client->clientSocket, &keySize, sizeof(keySize));
+            read(mapper->client->clientSocket, keyBuffer, keySize);
+            keyBuffer[keySize] = 0;
+
+            size_t reducerIndex;
+            if (getReducerForKey(keyBuffer, keyReducers, &reducerIndex) < 0) {
+                reducerIndex = currentReducer;
+                printf("Assigning index %lu to key %s\n", reducerIndex, keyBuffer);
+                ++currentReducer;
+                if (currentReducer == mapper->server->reducers->size)
+                    currentReducer = 0;
+
+                addReducer(keyBuffer, keyReducers, reducerIndex);
+            }
+
+            networkWrite(mapper->client->clientSocket, &reducerIndex, sizeof(reducerIndex));
         }
     }
 
     printf("Mapper #%d terminated\n", mapper->client->clientSocket);
     sem_post(&mapper->server->semaphore);
+
+    return NULL;
 }
 
 void* startListening(void* serverInfoPointer) {
@@ -78,6 +101,9 @@ void* startListening(void* serverInfoPointer) {
 }
 
 int main() {
+    currentReducer = 0;
+    keyReducers = createVector();
+
     ServerInfo server = startServer(MASTER_PORT_NUMBER);
 
     pthread_t listener;
@@ -120,6 +146,8 @@ int main() {
     for (size_t index = 0; index < server.reducers->size; ++index) {
         networkWrite(((Client*)server.reducers->storage[index])->clientSocket, &COMMAND_STOP, sizeof(COMMAND_STOP));
     }
+
+    close(server.serverSocket);
 
     return 0;
 }

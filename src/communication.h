@@ -10,10 +10,11 @@
 const uint16_t MASTER_PORT_NUMBER;
 const uint16_t REDUCER_PORT_NUMBER;
 
-const u_char COMMAND_REGISTER_MAPPER ;
+const u_char COMMAND_REGISTER_MAPPER;
 const u_char COMMAND_REGISTER_REDUCER;
 const u_char COMMAND_STOP;
 const u_char COMMAND_HANDLE_KEYVALUE;
+const u_char COMMAND_GET_REDUCER;
 
 void networkRead(int socket, void *buffer, size_t size);
 
@@ -36,5 +37,9 @@ typedef struct _client_struct {
 } Client;
 
 ServerInfo startServer(uint16_t portNumber);
+
+int getReducerForKey(const char *key, Vector *reducers, size_t *reducerIndex);
+
+void addReducer(const char *key, Vector *reducers, size_t reducerIndex);
 
 #endif

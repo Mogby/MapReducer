@@ -16,6 +16,8 @@
 static int outputFile;
 static pthread_mutex_t outputMutex;
 
+static Vector *keyReducers;
+
 typedef struct _connection_struct {
     int connectionSocket;
     struct sockaddr_in hostAddress;
@@ -57,20 +59,33 @@ Connection connectToHost(const char *hostname) {
     return result;
 }
 
-size_t getHash(const char *string, size_t length) {
-    size_t hash = 0;
-    for (size_t index = 0; index < length; ++index) {
-        hash = hash * 31 + string[index];
-    }
-    return hash;
-}
-
 typedef struct _reducer_struct {
     int socket;
     in_addr_t address;
 } Reducer;
 
+size_t askForReducer(const char *key, Connection connection) {
+    size_t result;
+
+    if (getReducerForKey(key, keyReducers, &result) < 0) {
+        printf("Asking reducer for key %s\n", key);
+        networkWrite(connection.connectionSocket, &COMMAND_GET_REDUCER, sizeof(COMMAND_GET_REDUCER));
+
+        size_t keySize = strlen(key);
+        networkWrite(connection.connectionSocket, &keySize, sizeof(key));
+        write(connection.connectionSocket, key, keySize);
+
+        networkRead(connection.connectionSocket, &result, sizeof(result));
+
+        addReducer(key, keyReducers, result);
+    }
+
+    return result;
+}
+
 void runMapper(Connection connection) {
+    keyReducers = createVector();
+
     int mapperPipe[2];
 
     pipe(mapperPipe);
@@ -87,6 +102,7 @@ void runMapper(Connection connection) {
     close(mapperPipe[1]);
     close(STDIN_FILENO);
     dup(mapperPipe[0]);
+    wait(NULL);
 
     write(connection.connectionSocket, &COMMAND_REGISTER_MAPPER, sizeof(COMMAND_REGISTER_MAPPER));
 
@@ -143,7 +159,7 @@ void runMapper(Connection connection) {
     char key[1024], value[1024];
     size_t reducerIndex;
     while (scanf("%s : %s", key, value) == 2) {
-        reducerIndex = getHash(key, strlen(key)) % reducers->size;
+        reducerIndex = askForReducer(key, connection);
 
         networkWrite(((Reducer*)reducers->storage[reducerIndex])->socket,
                      &COMMAND_HANDLE_KEYVALUE, sizeof(COMMAND_HANDLE_KEYVALUE));
@@ -175,7 +191,9 @@ void outputPair(const char *key, size_t keySize, const char *value, size_t value
     pthread_mutex_unlock(&outputMutex);
 }
 
-void* handleClient(Client *client) {
+void* handleClient(void *clientPointer) {
+    Client *client = (Client*)clientPointer;
+
     u_char command;
     char key[1024], value[1024];
 

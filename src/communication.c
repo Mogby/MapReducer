@@ -2,20 +2,20 @@
 #include "common.h"
 
 #include <unistd.h>
-#include <netinet/in.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
 
-const uint16_t MASTER_PORT_NUMBER = 8804;
-const uint16_t REDUCER_PORT_NUMBER = 8805;
+const uint16_t MASTER_PORT_NUMBER = 8808;
+const uint16_t REDUCER_PORT_NUMBER = 8809;
 
 const u_char COMMAND_REGISTER_MAPPER = 0;
 const u_char COMMAND_REGISTER_REDUCER = 1;
 const u_char COMMAND_STOP = 2;
 const u_char COMMAND_HANDLE_KEYVALUE = 3;
+const u_char COMMAND_GET_REDUCER = 4;
 
 void networkRead(int socket, void *buffer, size_t size) {
     read(socket, buffer, size);
@@ -94,5 +94,49 @@ ServerInfo startServer(uint16_t portNumber) {
     pthread_mutex_init(&result.mutex, NULL);
 
     return result;
+}
+
+int getReducerForKey(const char *key, Vector *reducers, size_t *reducerIndex) {
+    size_t leftBound = 0;
+    size_t rightBound = reducers->size;
+    size_t middleIndex;
+
+    while (leftBound < rightBound) {
+        middleIndex = (leftBound + rightBound) / 2;
+
+        if (strcmp(((KeyValuePair*)reducers->storage[middleIndex])->key, key) < 0) {
+            leftBound = middleIndex + 1;
+        } else {
+            rightBound = middleIndex;
+        }
+    }
+
+    if (leftBound == reducers->size || strcmp(((KeyValuePair*)reducers->storage[leftBound])->key, key)) {
+        return -1;
+    }
+
+    *reducerIndex = *(size_t*)((KeyValuePair*)reducers->storage[leftBound])->value;
+
+    return 0;
+}
+
+void addReducer(const char *key, Vector *reducers, size_t reducerIndex) {
+    size_t insertionIndex = 0;
+    while (insertionIndex < reducers->size &&
+            strcmp(((KeyValuePair*)reducers->storage[insertionIndex])->key, key) < 0) {
+        ++insertionIndex;
+    }
+
+    pushBack(reducers, NULL);
+    for (size_t index = reducers->size - 1; index > insertionIndex; --index) {
+        reducers->storage[index] = reducers->storage[index - 1];
+    }
+
+    KeyValuePair *newElement = malloc(sizeof(KeyValuePair));
+    newElement->key = createStringCopy(key);
+    newElement->value = malloc(sizeof(size_t));
+    *((size_t*)newElement->value) = reducerIndex;
+
+    reducers->storage[insertionIndex] = newElement;
 }
 
