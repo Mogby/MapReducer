@@ -87,6 +87,8 @@ void handleFile(const char *filename) {
         leftBound = rightBound;
     }
 
+    fflush(stdout);
+
     freeVectorOfPairs(wordsList);
     free(fileDescription.key);
     free(fileDescription.value);

@@ -68,7 +68,7 @@ size_t askForReducer(const char *key, Connection connection) {
     size_t result;
 
     if (getReducerForKey(key, keyReducers, &result) < 0) {
-        printf("Asking reducer for key %s\n", key);
+        //printf("Asking reducer for key %s\n", key);
         networkWrite(connection.connectionSocket, &COMMAND_GET_REDUCER, sizeof(COMMAND_GET_REDUCER));
 
         size_t keySize = strlen(key);

@@ -36,7 +36,7 @@ void* handleMapper(void* mapperrPointer) {
             pthread_mutex_lock(&mapper->server->mutex);
             if (getReducerForKey(keyBuffer, keyReducers, &reducerIndex) < 0) {
                 reducerIndex = currentReducer;
-                printf("Assigning index %lu to key %s\n", reducerIndex, keyBuffer);
+                //printf("Assigning index %lu to key %s\n", reducerIndex, keyBuffer);
                 ++currentReducer;
                 if (currentReducer == mapper->server->reducers->size)
                     currentReducer = 0;
